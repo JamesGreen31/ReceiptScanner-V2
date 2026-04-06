@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card narrow">
+  <h2>Edit Receipt</h2>
+  <form method="post">
+    <label>Collection</label>
+    <input type="text" name="collection_name" value="{{ record.collection_name }}">
+
+    <label>Merchant</label>
+    <input type="text" name="merchant" value="{{ record.merchant or '' }}">
+
+    <label>Transaction Date</label>
+    <input type="text" name="transaction_date" value="{{ record.transaction_date or '' }}">
+
+    <label>Total Amount</label>
+    <input type="text" name="total_amount" value="{{ record.total_amount if record.total_amount is not none else '' }}">
+
+    <label>Receipt Type</label>
+    <select name="receipt_type">
+      {% for receipt_type in receipt_types %}
+        <option value="{{ receipt_type }}" {% if receipt_type == record.receipt_type %}selected{% endif %}>{{ receipt_type|capitalize }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Status</label>
+    <select name="status">
+      {% for status in ['valid', 'needs_review', 'broken'] %}
+        <option value="{{ status }}" {% if status == record.status %}selected{% endif %}>{{ status }}</option>
+      {% endfor %}
+    </select>
+
+    {% if record.review_reasons %}
+      <p><strong>Review reasons:</strong> {{ record.review_reasons|join(', ') }}</p>
+    {% endif %}
+
+    <label class="checkbox"><input type="checkbox" name="include_in_summary" {% if record.include_in_summary and record.status == 'valid' %}checked{% endif %}> Include in monthly summary when valid</label>
+
+    <button type="submit">Save</button>
+  </form>
+
+  <h3>Raw OCR Text</h3>
+  <pre>{{ record.raw_ocr_text }}</pre>
+</section>
+{% endblock %}

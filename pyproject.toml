@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "receipt-scanner-it568a"
+version = "0.1.0"
+description = "Receipt Scanner V2 Flask implementation for IT568A"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "Flask==3.0.3",
+  "Pillow==10.4.0",
+  "pytesseract==0.3.13",
+  "python-dotenv==1.0.1",
+  "Werkzeug==3.0.4",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

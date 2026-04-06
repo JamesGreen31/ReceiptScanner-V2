@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="app-shell card">
+  <div class="topbar">
+    <div class="logo-box" aria-label="CKPlace Programs logo">
+      <div class="logo-mark">C</div>
+      <div class="logo-wordmark">CKPlace</div>
+    </div>
+    <div class="nav-center">
+      <a class="btn btn-secondary" href="{{ url_for('receipts.index', collection=active_collection, q=search_query, category=active_category, month=active_month, year=active_year) }}">Home</a>
+      <a class="btn btn-secondary" href="#help-panel">Help</a>
+    </div>
+    <div class="topbar-actions">
+      <a class="btn btn-outline-danger" href="{{ url_for('receipts.reset_view') }}">Reset View</a>
+      <form method="post" action="{{ url_for('receipts.reset_all') }}" onsubmit="return confirm('Delete all receipts from the store?');">
+        <button class="btn btn-danger" type="submit">Reset All</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="sidebar-tabs">
+        <div class="sidebar-tab active">Monthly Summary</div>
+        <div class="sidebar-tab">{{ selected_category_label }}</div>
+      </div>
+      <div class="sidebar-panel card">
+        <div class="sidebar-body">
+          <div class="metric-label">Total</div>
+          <div class="metric">${{ '%.2f'|format(sidebar.total) }}</div>
+
+          <div class="metric-label">Average</div>
+          <div class="metric">${{ '%.2f'|format(sidebar.average) }}</div>
+
+          <div class="metric-label">Receipts Included</div>
+          <div class="metric">{{ sidebar.count }}</div>
+
+          <div class="summary-list">
+            {% if summaries %}
+              {% for summary in summaries %}
+                <div class="summary-item">
+                  <strong>{{ summary.month }}</strong>
+                  <span>${{ '%.2f'|format(summary.total) }}</span>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="muted">No summary data for the current view.</div>
+            {% endif %}
+          </div>
+
+          <div class="now-viewing">Now Viewing • {{ active_collection }}</div>
+
+          <form method="get" class="filter-row">
+            <input type="hidden" name="collection" value="{{ active_collection }}">
+            <input type="hidden" name="category" value="{{ active_category }}">
+            <input type="hidden" name="q" value="{{ search_query }}">
+            <div>
+              <select name="month" onchange="this.form.submit()">
+                <option value="all">Month</option>
+                {% for month in month_options %}
+                  <option value="{{ month }}" {% if active_month == month %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <select name="year" onchange="this.form.submit()">
+                <option value="all">Year</option>
+                {% for year in year_options %}
+                  <option value="{{ year }}" {% if active_year == year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-pane">
+      <div class="card receipt-panel-header">Receipts View</div>
+      <div class="card table-card">
+        <div class="toolbar-row">
+          <div class="filter-strip">
+            {% for collection in collections %}
+              <a class="chip {% if collection == active_collection %}active{% endif %}" href="{{ url_for('receipts.index', collection=collection, q=search_query, category=active_category, month=active_month, year=active_year) }}">{{ collection }}</a>
+            {% endfor %}
+          </div>
+          <div class="filter-strip">
+            <a class="chip {% if active_category == 'all' %}active{% endif %}" href="{{ url_for('receipts.index', collection=active_collection, q=search_query, category='all', month=active_month, year=active_year) }}">All</a>
+            {% for receipt_type in receipt_types %}
+              <a class="chip {% if active_category == receipt_type %}active{% endif %}" href="{{ url_for('receipts.index', collection=active_collection, q=search_query, category=receipt_type, month=active_month, year=active_year) }}">{{ receipt_type|capitalize }} ({{ category_counts.get(receipt_type, 0) }})</a>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if records %}
+          <table class="receipt-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Receipt / Filename</th>
+                <th>Category</th>
+                <th>Total</th>
+                <th>Collection</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in records %}
+              <tr class="status-{{ record.status }}">
+                <td><span class="row-radio"></span></td>
+                <td>
+                  <div class="filename">{{ record.filename }}</div>
+                  {% if record.review_reasons %}<div class="muted small-text">{{ record.review_reasons|join(', ') }}</div>{% endif %}
+                </td>
+                <td><span class="table-badge">{{ record.receipt_type }}</span></td>
+                <td>{% if record.total_amount is not none %}${{ '%.2f'|format(record.total_amount) }}{% else %}Missing{% endif %}</td>
+                <td>{{ record.collection_name }}</td>
+                <td>{{ record.transaction_date or 'Missing' }}</td>
+                <td><span class="status-pill {{ record.status }}">{{ record.status.replace('_', ' ') }}</span></td>
+                <td>
+                  <div class="mini-actions">
+                    {% if record.status != 'broken' %}
+                      <a class="btn btn-secondary btn-small" href="{{ url_for('receipts.edit_receipt', receipt_id=record.receipt_id) }}">Edit</a>
+                    {% endif %}
+                    <form class="inline" method="post" action="{{ url_for('receipts.toggle_summary', receipt_id=record.receipt_id) }}">
+                      <button class="btn btn-secondary btn-tiny" type="submit">Toggle Summary</button>
+                    </form>
+                    <form class="inline" method="post" action="{{ url_for('receipts.delete_receipt', receipt_id=record.receipt_id) }}" onsubmit="return confirm('Delete this receipt?');">
+                      <button class="btn btn-danger btn-small" type="submit">Delete</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="receipt-empty">No receipts match the current collection, category, search, month, and year filters.</div>
+        {% endif %}
+      </div>
+
+      <div class="bottom-controls">
+        <div class="search-stack">
+          <form method="get">
+            <input type="hidden" name="collection" value="{{ active_collection }}">
+            <input type="hidden" name="category" value="{{ active_category }}">
+            <input type="hidden" name="month" value="{{ active_month }}">
+            <input type="hidden" name="year" value="{{ active_year }}">
+            <input class="search-control search-box" type="text" name="q" value="{{ search_query }}" placeholder="Search current collection and summary view">
+          </form>
+          <a class="btn btn-secondary clear-button" href="{{ url_for('receipts.clear_filters', collection=active_collection) }}">Clear Filters</a>
+        </div>
+        <div class="bottom-actions card compact-card">
+          <form method="post" action="{{ url_for('receipts.upload_receipts') }}" enctype="multipart/form-data" class="upload-form">
+            <input type="hidden" name="collection_name" value="{{ active_collection }}">
+            <select name="receipt_type">
+              {% for receipt_type in receipt_types %}
+                <option value="{{ receipt_type }}">{{ receipt_type|capitalize }}</option>
+              {% endfor %}
+            </select>
+            <input id="receipts" name="receipts" type="file" accept=".png,.jpg,.jpeg" multiple required>
+            <button class="btn btn-primary upload-button" type="submit">Upload Receipts</button>
+          </form>
+          <a class="btn btn-primary" href="{{ url_for('receipts.export_csv', collection=active_collection, q=search_query, category=active_category, month=active_month, year=active_year) }}">Export Current View</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="help-panel" class="card help-card">
+  <h2>How determinations are made</h2>
+  <p>The parser crops sparse images to the content area, enlarges them, thresholds the result, then OCRs the processed image. It finds every recognized currency amount and uses the highest dollar figure as the total. Dates are normalized to <code>YYYY-MM-DD</code> when they match common numeric or month-name formats.</p>
+  <p>A receipt is marked <code>needs_review</code> and highlighted yellow when a required field is missing. Those records stay out of the monthly summary until corrected. Reset All clears the JSON store completely.</p>
+</section>
+{% endblock %}
