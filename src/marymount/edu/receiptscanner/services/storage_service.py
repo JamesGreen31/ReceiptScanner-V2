@@ -62,8 +62,7 @@ class StorageService:
     @classmethod
     def collection_names(cls, data_file: str) -> list[str]:
         names = {record.collection_name for record in cls.load_records(data_file) if record.collection_name}
-        if not names:
-            names = {"Default"}
+        names.add("Default")
         return sorted(names)
 
     @staticmethod

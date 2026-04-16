@@ -26,8 +26,12 @@ class PreprocessingService:
             cropped = PreprocessingService._crop_to_content(image)
             grayscale = ImageOps.grayscale(cropped)
             normalized = ImageOps.autocontrast(grayscale)
+
             width, height = normalized.size
-            scaled = normalized.resize((max(width * 3, 1), max(height * 3, 1)), Image.Resampling.LANCZOS)
-            thresholded = scaled.point(lambda px: 255 if px > 185 else 0)
-            thresholded.save(output_path)
+            scaled = normalized.resize(
+                (max(width * 2, 1), max(height * 2, 1)),
+                Image.Resampling.LANCZOS,
+            )
+
+            scaled.save(output_path)
         return output_path

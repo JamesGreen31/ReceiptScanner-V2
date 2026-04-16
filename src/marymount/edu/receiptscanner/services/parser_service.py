@@ -6,7 +6,66 @@ from typing import Any
 
 
 class ParserService:
-    VENDOR_WHITELIST = ["SHELL", "BP", "EXXON", "MOBIL", "COSTCO", "WALMART", "TARGET"]
+    VENDOR_WHITELIST = [
+    # Gas Stations / Fuel
+    "SHELL", "BP", "EXXON", "MOBIL", "CHEVRON", "TEXACO", "CITGO", "SUNOCO",
+    "VALERO", "ARCO", "PHILLIPS 66", "CONOCO", "MARATHON", "SPEEDWAY",
+    "LOVE'S", "PILOT", "FLYING J", "CIRCLE K", "7-ELEVEN", "WAWA",
+    "SHEETZ", "QUIKTRIP", "RACETRAC", "KUM & GO", "AMPM",
+
+    # Big Box / Retail
+    "WALMART", "TARGET", "COSTCO", "SAM'S CLUB", "BJ'S", "MEIJER",
+    "FRED MEYER", "KROGER", "ALDI", "LIDL", "WHOLE FOODS", "TRADER JOE'S",
+    "PUBLIX", "SAFEWAY", "GIANT", "GIANT EAGLE", "HARRIS TEETER",
+    "FOOD LION", "WINCO", "SPROUTS", "WEGMANS", "STOP & SHOP",
+
+    # Pharmacies / Convenience
+    "CVS", "CVS PHARMACY", "WALGREENS", "RITE AID", "DUANE READE",
+
+    # Fast Food
+    "MCDONALD'S", "BURGER KING", "WENDY'S", "TACO BELL", "KFC",
+    "CHICK-FIL-A", "SUBWAY", "DOMINO'S", "PIZZA HUT", "PAPA JOHN'S",
+    "LITTLE CAESARS", "ARBY'S", "JACK IN THE BOX", "SONIC", "FIVE GUYS",
+    "IN-N-OUT", "CHIPOTLE", "QDOBA", "PANERA", "ZAXBY'S",
+
+    # Coffee / Cafe
+    "STARBUCKS", "DUNKIN", "DUNKIN DONUTS", "PEET'S", "CARIBOU COFFEE",
+    "TIM HORTONS",
+
+    # Restaurants (Casual Dining)
+    "APPLEBEE'S", "CHILI'S", "OLIVE GARDEN", "RED LOBSTER",
+    "OUTBACK", "TGI FRIDAYS", "BUFFALO WILD WINGS",
+    "CRACKER BARREL", "IHOP", "DENNY'S",
+
+    # Online / Tech Retail
+    "AMAZON", "AMAZON.COM", "EBAY", "BEST BUY", "NEWEGG", "MICROCENTER",
+
+    # Department / Clothing
+    "MACY'S", "KOHL'S", "JCPENNEY", "NORDSTROM", "OLD NAVY",
+    "GAP", "H&M", "ZARA", "TJ MAXX", "MARSHALLS", "ROSS",
+
+    # Home Improvement
+    "HOME DEPOT", "LOWE'S", "MENARDS", "ACE HARDWARE", "TRUE VALUE",
+
+    # Auto / Parts / Service
+    "AUTOZONE", "ADVANCE AUTO PARTS", "O'REILLY", "PEP BOYS",
+    "FIRESTONE", "GOODYEAR", "Jiffy Lube",
+
+    # Travel / Lodging
+    "MARRIOTT", "HILTON", "HYATT", "HOLIDAY INN", "BEST WESTERN",
+    "MOTEL 6", "SUPER 8",
+
+    # Airlines / Transport
+    "DELTA", "AMERICAN AIRLINES", "UNITED", "SOUTHWEST",
+    "UBER", "LYFT",
+
+    # Misc Common
+    "DOLLAR GENERAL", "FAMILY DOLLAR", "DOLLAR TREE",
+    "BIG LOTS", "OFFICE DEPOT", "STAPLES",
+    "PETSMART", "PETCO",
+    "GAMESTOP",
+    "SEARS"
+    ]
     DATE_PATTERNS = [
         re.compile(r"\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b"),
         re.compile(r"\b(\d{4}-\d{2}-\d{2})\b"),
@@ -40,6 +99,13 @@ class ParserService:
             review_reasons.append("missing_date")
         if total_amount is None:
             review_reasons.append("missing_total")
+        try:
+            if total_amount > 1000:
+                review_reasons.append("high_total")
+            if total_amount <= 0:
+                review_reasons.append("non_positive_total")
+        except:
+            review_reasons.append("Total either not found or not an integer")
 
         status = "valid" if not review_reasons else "needs_review"
         return {

@@ -9,8 +9,11 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_from_directory,
     url_for,
 )
+from werkzeug.utils import secure_filename
+from pathlib import Path
 
 from ..services.export_service import ExportService
 from ..services.receipt_pipeline import ReceiptPipeline
@@ -194,3 +197,39 @@ def export_csv():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment; filename=receipt_scanner_export.csv"},
     )
+
+@receipts_bp.get("/receipts/<receipt_id>/image/original")
+def receipt_original_image(receipt_id: str):
+    record = StorageService.get_record(current_app.config["DATA_FILE"], receipt_id)
+    if record is None or not record.filename:
+        return render_template("errors/404.html"), 404
+
+    upload_dir = Path(current_app.config["UPLOAD_DIR"]).resolve()
+    return send_from_directory(upload_dir, secure_filename(record.filename))
+
+@receipts_bp.get("/receipts/<receipt_id>/image/processed")
+def receipt_processed_image(receipt_id: str):
+    record = StorageService.get_record(current_app.config["DATA_FILE"], receipt_id)
+    if record is None or not record.processed_filename:
+        return render_template("errors/404.html"), 404
+
+    processed_dir = Path(current_app.config["PROCESSED_DIR"]).resolve()
+    return send_from_directory(processed_dir, secure_filename(record.processed_filename))
+
+@receipts_bp.post("/receipts/delete-selected")
+def delete_selected():
+    selected_ids = request.form.get("selected_ids", "").strip()
+    active_collection = request.form.get("collection") or "Default"
+
+    if not selected_ids:
+        flash("No receipts were selected.", "warning")
+        return redirect(url_for("receipts.index", collection=active_collection))
+
+    deleted_count = 0
+    for receipt_id in [rid for rid in selected_ids.split(",") if rid.strip()]:
+        deleted = StorageService.delete_record(current_app.config["DATA_FILE"], receipt_id.strip())
+        if deleted is not None:
+            deleted_count += 1
+
+    flash(f"Deleted {deleted_count} selected receipt(s).", "warning")
+    return redirect(url_for("receipts.index", collection=active_collection))

@@ -92,6 +92,16 @@
           </div>
         </div>
 
+        <div id="selection-toolbar" class="selection-toolbar" hidden>
+          <button type="button" id="clear-selections" class="btn btn-primary btn-small">Clear Selections</button>
+
+          <form method="post" action="{{ url_for('receipts.delete_selected') }}" class="inline" id="delete-selected-form" onsubmit="return confirm('Delete selected receipts?');">
+            <input type="hidden" name="selected_ids" id="selected-ids-input">
+            <input type="hidden" name="collection" value="{{ active_collection }}">
+            <button type="submit" class="btn btn-danger btn-small">Delete Selected</button>
+          </form>
+        </div>
+
         {% if records %}
           <table class="receipt-table">
             <thead>
@@ -108,11 +118,20 @@
             </thead>
             <tbody>
               {% for record in records %}
-              <tr class="status-{{ record.status }}">
-                <td><span class="row-radio"></span></td>
+              <tr class="status-{{ record.status }}" data-receipt-id="{{ record.receipt_id }}">
+                <td>
+                  <input
+                    type="checkbox"
+                    class="receipt-select"
+                    data-receipt-id="{{ record.receipt_id }}"
+                    aria-label="Select {{ record.filename }}"
+                  >
+                </td>
                 <td>
                   <div class="filename">{{ record.filename }}</div>
-                  {% if record.review_reasons %}<div class="muted small-text">{{ record.review_reasons|join(', ') }}</div>{% endif %}
+                  {% if record.review_reasons %}
+                    <div class="muted small-text">{{ record.review_reasons|join(', ') }}</div>
+                  {% endif %}
                 </td>
                 <td><span class="table-badge">{{ record.receipt_type }}</span></td>
                 <td>{% if record.total_amount is not none %}${{ '%.2f'|format(record.total_amount) }}{% else %}Missing{% endif %}</td>
@@ -120,14 +139,16 @@
                 <td>{{ record.transaction_date or 'Missing' }}</td>
                 <td><span class="status-pill {{ record.status }}">{{ record.status.replace('_', ' ') }}</span></td>
                 <td>
-                  <div class="mini-actions">
+                  <div class="mini-actions" data-row-actions="{{ record.receipt_id }}">
                     {% if record.status != 'broken' %}
-                      <a class="btn btn-secondary btn-small" href="{{ url_for('receipts.edit_receipt', receipt_id=record.receipt_id) }}">Edit</a>
+                      <a class="btn btn-secondary btn-small row-edit-btn" href="{{ url_for('receipts.edit_receipt', receipt_id=record.receipt_id) }}">Edit</a>
                     {% endif %}
-                    <form class="inline" method="post" action="{{ url_for('receipts.toggle_summary', receipt_id=record.receipt_id) }}">
+
+                    <form class="inline row-toggle-form" method="post" action="{{ url_for('receipts.toggle_summary', receipt_id=record.receipt_id) }}">
                       <button class="btn btn-secondary btn-tiny" type="submit">Toggle Summary</button>
                     </form>
-                    <form class="inline" method="post" action="{{ url_for('receipts.delete_receipt', receipt_id=record.receipt_id) }}" onsubmit="return confirm('Delete this receipt?');">
+
+                    <form class="inline row-delete-form" method="post" action="{{ url_for('receipts.delete_receipt', receipt_id=record.receipt_id) }}" onsubmit="return confirm('Delete this receipt?');">
                       <button class="btn btn-danger btn-small" type="submit">Delete</button>
                     </form>
                   </div>
@@ -152,17 +173,36 @@
           </form>
           <a class="btn btn-secondary clear-button" href="{{ url_for('receipts.clear_filters', collection=active_collection) }}">Clear Filters</a>
         </div>
+
         <div class="bottom-actions card compact-card">
           <form method="post" action="{{ url_for('receipts.upload_receipts') }}" enctype="multipart/form-data" class="upload-form">
-            <input type="hidden" name="collection_name" value="{{ active_collection }}">
-            <select name="receipt_type">
+        <label for="upload-collection-name">Collection</label>
+        <input
+          id="upload-collection-name"
+          name="collection_name"
+          type="text"
+          value="{{ active_collection or 'Default' }}"          list="collection-options"
+          placeholder="Enter or choose a collection"
+        >
+        <datalist id="collection-options">
+          {% for collection in collections %}
+            <option value="{{ collection }}"></option>
+          {% endfor %}
+        </datalist>
+
+            <label for="upload-receipt-type">Receipt Type</label>
+            <select id="upload-receipt-type" name="receipt_type">
               {% for receipt_type in receipt_types %}
                 <option value="{{ receipt_type }}">{{ receipt_type|capitalize }}</option>
               {% endfor %}
             </select>
+
+            <label for="receipts">Receipt Images</label>
             <input id="receipts" name="receipts" type="file" accept=".png,.jpg,.jpeg" multiple required>
+
             <button class="btn btn-primary upload-button" type="submit">Upload Receipts</button>
           </form>
+
           <a class="btn btn-primary" href="{{ url_for('receipts.export_csv', collection=active_collection, q=search_query, category=active_category, month=active_month, year=active_year) }}">Export Current View</a>
         </div>
       </div>
@@ -175,4 +215,55 @@
   <p>The parser crops sparse images to the content area, enlarges them, thresholds the result, then OCRs the processed image. It finds every recognized currency amount and uses the highest dollar figure as the total. Dates are normalized to <code>YYYY-MM-DD</code> when they match common numeric or month-name formats.</p>
   <p>A receipt is marked <code>needs_review</code> and highlighted yellow when a required field is missing. Those records stay out of the monthly summary until corrected. Reset All clears the JSON store completely.</p>
 </section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const checkboxes = Array.from(document.querySelectorAll(".receipt-select"));
+  const toolbar = document.getElementById("selection-toolbar");
+  const clearBtn = document.getElementById("clear-selections");
+  const selectedIdsInput = document.getElementById("selected-ids-input");
+
+  function updateSelectionUI() {
+    const selected = checkboxes.filter(cb => cb.checked);
+    const selectedIds = selected.map(cb => cb.dataset.receiptId);
+    const anySelected = selectedIds.length > 0;
+
+    if (toolbar) {
+      toolbar.hidden = !anySelected;
+    }
+
+    if (selectedIdsInput) {
+      selectedIdsInput.value = selectedIds.join(",");
+    }
+
+    document.querySelectorAll("tr[data-receipt-id]").forEach(row => {
+      const rowId = row.dataset.receiptId;
+      row.classList.toggle("row-selected", selectedIds.includes(rowId));
+    });
+
+    document.querySelectorAll(".row-edit-btn").forEach(el => {
+      el.style.display = anySelected ? "none" : "";
+    });
+
+    document.querySelectorAll(".row-delete-form").forEach(el => {
+      el.style.display = anySelected ? "none" : "";
+    });
+  }
+
+  checkboxes.forEach(cb => {
+    cb.addEventListener("change", updateSelectionUI);
+  });
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", function () {
+      checkboxes.forEach(cb => {
+        cb.checked = false;
+      });
+      updateSelectionUI();
+    });
+  }
+
+  updateSelectionUI();
+});
+</script>
 {% endblock %}

@@ -37,8 +37,35 @@
 
     <button type="submit">Save</button>
   </form>
+<div class="image-compare">
+  <div class="image-panel">
+    <h3>Original</h3>
+    {% if record.filename %}
+      <img
+        src="{{ url_for('receipts.receipt_original_image', receipt_id=record.receipt_id) }}"
+        alt="Original uploaded receipt"
+      >
+    {% else %}
+      <p>No original image available.</p>
+    {% endif %}
+  </div>
 
-  <h3>Raw OCR Text</h3>
+  <div class="image-panel">
+    <h3>Processed</h3>
+    {% if record.processed_filename %}
+      <img
+        src="{{ url_for('receipts.receipt_processed_image', receipt_id=record.receipt_id) }}"
+        alt="Processed receipt image"
+      >
+    {% else %}
+      <p>No processed image available.</p>
+    {% endif %}
+  </div>
+</div>
+  <h3>Raw OCR Text:</h3>
   <pre>{{ record.raw_ocr_text }}</pre>
 </section>
+<div style="margin-bottom: 1rem;">
+  <a class="btn btn-danger btn-small" href="{{ url_for('receipts.index') }}">Back</a>
+</div>
 {% endblock %}
