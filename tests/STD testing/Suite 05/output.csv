@@ -1,0 +1,10 @@
+receipt_id,collection_name,filename,receipt_type,merchant,transaction_date,total_amount,status,include_in_summary,summary_eligible
+18a69910-8cb2-4524-a235-bf4d38edf435,Default,Food_Blurry.jpg,food,Chick-Fil-A,,11.65,needs_review,False,False
+aeb5fb7e-8d21-421e-8d53-f5a934f4db01,Default,Food_Blurry.jpg,food,Chick-Fil-A,2026-04-10,11.65,valid,True,True
+caaf300a-8998-4371-8189-e4a1cc60508f,Default,Untitled.png,gas,Shell,2024-01-02,,needs_review,False,False
+a61b4839-0acb-4b74-8cd5-b0a41240242e,Default,fake.png,gas,Exxon,2026-01-09,168.73,valid,False,False
+49c50342-76fe-4972-b39c-65fc4174d73a,Default,Fake2.jpg,gas,Chevron,2026-10-31,100.92,valid,True,True
+446096cd-903a-47f6-925b-c5be48032a19,Default,Fake2.jpg,gas,Chevron,2026-10-31,100.92,valid,True,True
+3786161c-a06a-4b36-80af-8c1705aeea0b,Default,Fake2.jpg,gas,Chevron,2026-10-31,100.92,valid,True,True
+a3062507-be58-40f4-b5b2-20aaf9eac5ab,Default,Sephora.jpg,retail,Hi Alyssa,2026-04-08,74.5,valid,True,True
+b9bdc29f-b204-419f-bc6d-afca2384dafe,Default,Lowes.jpg,retail,Lowe'S,2026-04-10,1423.06,needs_review,False,False
